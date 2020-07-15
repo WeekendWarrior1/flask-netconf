@@ -93,6 +93,8 @@ def netconf_op():
 
         try:
             kw[op[kw['oper']]] = 'checked'
+            if "xpath" in kw:
+                kw['XPATH'] = 'checked'
         except KeyError:
             kw['response']= "no operation (get, get_config, edit_config) specified"
             return render_template('code-generator.html', **kw)  # render a template for error
@@ -120,16 +122,25 @@ def netconf_op():
                 return render_template('code-generator.html', **kw)  # render a template for error
 
             if kw['oper'] == 'get':
-                c = m.get('<filter>' + kw['xml'] + '</filter>').data
+                if "xpath" in kw:
+                    c = m.get(filter=('xpath', kw['xml'])).data
+                else:
+                    c = m.get('<filter>' + kw['xml'] + '</filter>').data
                 # print(etree.tostring(etree.fromstring(c), pretty_print=True))
                 kw['response'] = etree.tostring(c, pretty_print=True).decode()
 
             elif kw['oper'] == 'get_config':
-                c = m.get_config(source='running', filter=('subtree', kw['xml'])).data
+                if "xpath" in kw:
+                    c = m.get_config(source='running', filter=('xpath', kw['xml']), with_defaults="report-all-tagged").data
+                else:
+                    c = m.get_config(source='running', filter=('subtree', kw['xml']), with_defaults="report-all-tagged").data
                 kw['response'] = etree.tostring(c, pretty_print=True).decode()
 
             elif kw['oper'] == "edit_config":
-                c = m.edit_config(kw['xml'], target='running', format='xml', default_operation='merge')
+                if "xpath" in kw:
+                    c = m.edit_config(kw['xml'], target='running', format='xml', default_operation='merge')
+                else:
+                    c = m.edit_config(kw['xml'], target='running', format='xml', default_operation='merge')
                 kw['response'] = "edited"
             else:
                 raise KeyError("no operation (get, get_config, edit_config) specified")
@@ -187,4 +198,4 @@ if __name__ == '__main__':
 
         jstreedata = models.create_jstreedata(modules, context)
 
-    app.run(host="0.0.0.0", port=8000)
+    app.run(host="0.0.0.0", port=8000, debug=True)
